@@ -10,6 +10,10 @@ readme = "README.md"
 categories = ["asynchronous"]
 keywords = ["api", "async", "windows"]
 
+[package.metadata.docs.rs]
+default-target = "x86_64-pc-windows-msvc"
+targets = []
+
 [dependencies]
 log = "0.4.14"
 
