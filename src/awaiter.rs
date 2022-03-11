@@ -12,6 +12,7 @@ use windows::Foundation::{
     IAsyncOperation,
     AsyncOperationCompletedHandler,
     AsyncActionCompletedHandler,
+    AsyncStatus,
 };
 
 /// convert into `AsyncActionAwaiter` or `AsyncOperationAwaiter`.
@@ -46,24 +47,13 @@ where
 pub struct AsyncActionAwaiter
 {
     asyncact: IAsyncAction,
-    creation_result: windows::core::Result<()>,
+    is_first_poll: bool,
 }
 
 impl AsyncActionAwaiter {
     pub fn new(asyncact: IAsyncAction) -> Self {
-        let handler = AsyncActionCompletedHandler::new(
-            |_action, _status| {
-                crate::executor::post_message_asyncact_completed();
-                Ok(())
-            }
-        );
-        let creation_result = asyncact.SetCompleted(handler);
-        if creation_result.is_err() {
-            log::debug!("IAsyncAction::SetCompleted() fail {:?}", creation_result);
-        }
-
         log::trace!("Create new AsyncActionAwaiter");
-        Self { asyncact, creation_result }
+        Self { asyncact, is_first_poll: true }
     }
 }
 
@@ -72,14 +62,33 @@ impl Future for AsyncActionAwaiter
     type Output = windows::core::Result<()>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
-        if let Err(e) = &self.creation_result {
-            Poll::Ready(Err(e.clone()))
+        let this = unsafe { self.get_unchecked_mut() };
+
+        if this.is_first_poll {
+            this.is_first_poll = false;
+            match this.asyncact.Status() {
+                Ok(status) => {
+                    if status == AsyncStatus::Started {
+                        let waker = cx.waker().clone();
+                        let handler = AsyncActionCompletedHandler::new(
+                            move |_result, _status|{
+                                let waker = waker.clone();
+                                waker.wake();
+                                Ok(())
+                            }
+                        );
+            
+                        if let Err(e) = this.asyncact.SetCompleted(handler) {
+                            return Poll::Ready(Err(e));
+                        }
+                    }
+                }
+                Err(e) => { return Poll::Ready(Err(e)); }
+            }
         }
-        else {
-            let this = unsafe { self.get_unchecked_mut() };
-            let pin = unsafe { Pin::new_unchecked(&mut this.asyncact) };
-            Future::poll(pin, cx)
-        }
+
+        let pin = unsafe { Pin::new_unchecked(&mut this.asyncact) };
+        Future::poll(pin, cx)
     }
 }
 
@@ -90,7 +99,7 @@ where
     T: RuntimeType + 'static,
 {
     asyncop: IAsyncOperation<T>,
-    creation_result: windows::core::Result<()>,
+    is_first_poll: bool,
 }
 
 impl<T> AsyncOperationAwaiter<T>
@@ -98,19 +107,8 @@ where
     T: RuntimeType + 'static,
 {
     pub fn new(asyncop: IAsyncOperation<T>) -> Self {
-        let handler = AsyncOperationCompletedHandler::new(
-            |_result: &Option<IAsyncOperation<T>>, _status|{
-                crate::executor::post_message_asyncop_completed();
-                Ok(())
-            }
-        );
-        let creation_result = asyncop.SetCompleted(handler);
-        if creation_result.is_err() {
-            log::debug!("IAsyncOperation<T>::SetCompleted() fail {:?}", creation_result);
-        }
-
         log::trace!("Create new AsyncOperationAwaiter");
-        Self { asyncop, creation_result }
+        Self { asyncop, is_first_poll: true }
     }
 }
 
@@ -121,13 +119,32 @@ where
     type Output = windows::core::Result<T>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
-        if let Err(e) = &self.creation_result {
-            Poll::Ready(Err(e.clone()))
+        let this = unsafe { self.get_unchecked_mut() };
+
+        if this.is_first_poll {
+            this.is_first_poll = false;
+            match this.asyncop.Status() {
+                Ok(status) => {
+                    if status == AsyncStatus::Started {
+                        let waker = cx.waker().clone();
+                        let handler = AsyncOperationCompletedHandler::new(
+                            move |_result: &Option<IAsyncOperation<T>>, _status|{
+                                let waker = waker.clone();
+                                waker.wake();
+                                Ok(())
+                            }
+                        );
+            
+                        if let Err(e) = this.asyncop.SetCompleted(handler) {
+                            return Poll::Ready(Err(e));
+                        }
+                    }
+                }
+                Err(e) => { return Poll::Ready(Err(e)); }
+            }
         }
-        else {
-            let this = unsafe { self.get_unchecked_mut() };
-            let pin = unsafe { Pin::new_unchecked(&mut this.asyncop) };
-            Future::poll(pin, cx)
-        }
+
+        let pin = unsafe { Pin::new_unchecked(&mut this.asyncop) };
+        Future::poll(pin, cx)
     }
 }
