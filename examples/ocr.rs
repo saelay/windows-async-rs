@@ -1,5 +1,4 @@
 // OCR example (using WinRT "Windows.Media.Ocr.OcrEngine")
-use windows_async::{IntoAwaiter};
 
 use windows::core::{
     Result,
@@ -44,17 +43,17 @@ async fn exec_ocr() -> Result<String> {
         let dummy_window = windows_async::create_dummy_window();
         unsafe { picker.cast::<IInitializeWithWindow>()?.Initialize(dummy_window.hwnd())?; }
 
-        picker.PickSingleFileAsync()?.into_awaiter().await?
+        picker.PickSingleFileAsync()?.await?
     };
 
     let bmp = BitmapDecoder::CreateWithIdAsync(
         BitmapDecoder::PngDecoderId()?,
-        file.OpenAsync(FileAccessMode::Read)?.into_awaiter().await?
-    )?.into_awaiter().await?;
-    let bmp = bmp.GetSoftwareBitmapAsync()?.into_awaiter().await?;
+        file.OpenAsync(FileAccessMode::Read)?.await?
+    )?.await?;
+    let bmp = bmp.GetSoftwareBitmapAsync()?.await?;
 
     let ocr:OcrEngine = OcrEngine::TryCreateFromUserProfileLanguages()?;
-    let ocr_result = ocr.RecognizeAsync(bmp)?.into_awaiter().await?;
+    let ocr_result = ocr.RecognizeAsync(bmp)?.await?;
 
     let text = String::from_utf16_lossy(ocr_result.Text()?.as_wide());
     Ok(text)

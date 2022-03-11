@@ -1,5 +1,4 @@
 // Show Desktop App list example (using WinRT "Windows.Inventory.InstalledDesktopApp")
-use windows_async::{IntoAwaiter};
 
 use windows::core::{
     Result,
@@ -12,7 +11,7 @@ use windows::System::Inventory::{
 
 async fn show_installed_desktop_app() -> Result<()> {
 
-    let vec = InstalledDesktopApp::GetInventoryAsync()?.into_awaiter().await?;
+    let vec = InstalledDesktopApp::GetInventoryAsync()?.await?;
 
     for i in 0..vec.Size()? {
         let item = vec.GetAt(i)?;

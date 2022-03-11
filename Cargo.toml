@@ -1,6 +1,6 @@
 [package]
 name = "windows-async"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["saelay <saelay@outlook.jp>"]
 edition = "2021"
 description = "Simple async executor for windows application using windows crate."

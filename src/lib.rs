@@ -4,7 +4,6 @@
 //! # Examples
 //! ```
 //! // Show Desktop App list example (using WinRT "Windows.Inventory.InstalledDesktopApp")
-//! use windows_async::{IntoAwaiter};
 //! 
 //! use windows::core::{
 //!     Result,
@@ -16,9 +15,7 @@
 //! 
 //! async fn show_installed_desktop_app() -> Result<()> {
 //! 
-//!     // `IAsyncOperation` converts to `AsyncOperationAwaiter` and then awaits.
-//!     // (`IntoAwaiter::into_awaiter()` method is convenient.)
-//!     let vec = InstalledDesktopApp::GetInventoryAsync()?.into_awaiter().await?;
+//!     let vec = InstalledDesktopApp::GetInventoryAsync()?.await?;
 //! 
 //!     for i in 0..vec.Size()? {
 //!         let item = vec.GetAt(i)?;
@@ -40,14 +37,7 @@
 //! ```
 //! 
 
-mod awaiter;
 mod executor;
-
-pub use awaiter::{
-    IntoAwaiter,
-    AsyncOperationAwaiter,
-    AsyncActionAwaiter,
-};
 
 pub use executor::{
     block_on,
