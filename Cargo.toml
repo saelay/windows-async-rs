@@ -1,9 +1,14 @@
 [package]
 name = "windows-async"
 version = "0.1.0"
+authors = ["saelay <saelay@outlook.jp>"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Simple async executor for windows application using windows crate."
+repository = "https://github.com/saelay/windows-async-rs"
+license = "MIT"
+readme = "README.md"
+categories = ["asynchronous"]
+keywords = ["api", "async", "windows"]
 
 [dependencies]
 log = "0.4.14"
